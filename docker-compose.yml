@@ -1,0 +1,97 @@
+services:
+
+  # -- PRESENTATION-facing / APPLICATION tier ---------------------------------
+  web:
+    build: ./web
+    container_name: app_web
+    ports:
+      - "127.0.0.1:8080:80"
+    environment:
+      DB_NAME: ${DB_NAME:-cs3sp}
+      DB_USER: ${DB_USER:-student}
+      DB_PASSWORD: ${DB_PASSWORD:-student}
+    volumes:
+      - ./src:/var/www/html
+    depends_on:
+      - db
+    networks:
+      - app-net
+    restart: unless-stopped
+
+  # -- DATA tier --------------------------------------------------------------
+  db:
+    image: mariadb:11
+    container_name: app_db
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root}
+      MARIADB_DATABASE: ${DB_NAME:-cs3sp}
+      MARIADB_USER: ${DB_USER:-student}
+      MARIADB_PASSWORD: ${DB_PASSWORD:-student}
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - app-net
+    restart: unless-stopped
+
+  # -- One-shot: grant the app user rights to create databases/tables ---------
+  dbgrant:
+    image: mariadb:11
+    depends_on:
+      - db
+    networks:
+      - app-net
+    restart: "no"
+
+    environment:
+      DB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root}
+      DB_USER: ${DB_USER:-student}
+      DB_PASSWORD: ${DB_PASSWORD:-student}
+
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        echo "Waiting for MariaDB..."
+
+        until mariadb -h db -u root -p"$$DB_ROOT_PASSWORD" \
+          -e "SELECT 1" >/dev/null 2>&1; do
+          sleep 2
+        done
+
+        echo "Configuring database user..."
+
+        mariadb -h db -u root -p"$$DB_ROOT_PASSWORD" -e "
+          CREATE USER IF NOT EXISTS '$$DB_USER'@'%'
+            IDENTIFIED BY '$$DB_PASSWORD';
+
+          ALTER USER '$$DB_USER'@'%'
+            IDENTIFIED BY '$$DB_PASSWORD';
+
+          GRANT ALL PRIVILEGES ON *.* TO '$$DB_USER'@'%'
+            WITH GRANT OPTION;
+        "
+
+        echo "Database user configured successfully."
+
+  # -- Optional: DB inspection tool -------------------------------------------
+  phpmyadmin:
+    image: phpmyadmin:5
+    container_name: app_phpmyadmin
+    environment:
+      PMA_HOST: db
+      PMA_USER: ${DB_USER:-student}
+      PMA_PASSWORD: ${DB_PASSWORD:-student}
+    ports:
+      - "127.0.0.1:8081:80"
+    depends_on:
+      - db
+    networks:
+      - app-net
+    restart: unless-stopped
+
+networks:
+  app-net:
+    driver: bridge
+
+volumes:
+  db_data:
