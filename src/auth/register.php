@@ -59,6 +59,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($result !== false) {
             $_SESSION['id'] = $pdo->lastInsertId();
             header("Location: /home");
+        } else {
+            $_SESSION['errors']['general'] = "Registration failed. Please try again later.";
+            header("Location: /auth/register.php");
         }
     }
 } else if ($_SERVER['REQUEST_METHOD'] === 'GET'){
