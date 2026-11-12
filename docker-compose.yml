@@ -10,6 +10,7 @@ services:
       DB_NAME: ${DB_NAME:-cs3sp}
       DB_USER: ${DB_USER:-student}
       DB_PASSWORD: ${DB_PASSWORD:-student}
+      SECURE: ${SECURE:-true}
     volumes:
       - ./src:/var/www/html
     depends_on:
