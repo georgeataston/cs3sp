@@ -3,6 +3,11 @@ session_start();
 require '../db.php';
 $secure = filter_var(getenv('SECURE'), FILTER_VALIDATE_BOOLEAN);
 
+if (isset($_SESSION['id'])) {
+    header("Location: /app");
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $pdo = get_db();
 
@@ -10,20 +15,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $username = trim($_POST['username']) ?? '';
         $password = $_POST['password'] ?? '';
 
-        $statement = $pdo->prepare("SELECT `id`, `password` FROM `users` WHERE `username` = ?");
+        $statement = $pdo->prepare("SELECT `id`, `username`, `password` FROM `users` WHERE `username` = ?");
         $statement->execute([$username]);
         $row = $statement->fetch(PDO::FETCH_ASSOC);
     } else {
         $username = $_POST['username'] ?? '';
         $password = $_POST['password'] ?? '';
 
-        $sql = "SELECT `id`, `password` FROM `users` WHERE `username` = '$username'";
+        $sql = "SELECT `id`, `username`, `password` FROM `users` WHERE `username` = '$username'";
         $row = $pdo->query($sql)->fetch(PDO::FETCH_ASSOC);
     }
 
     if ($row && password_verify($password, $row['password'])) {
         $_SESSION['id'] = $row['id'];
-        header("Location: /home");
+        $_SESSION['username'] = $row['username'];
+        header("Location: /app");
     } else {
         $_SESSION['errors']['general'] = "Invalid username or password.";
         header("Location: /auth/login.php");
@@ -46,12 +52,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php include('../nav.php') ?>
     <section class="section">
         <div class="container">
-        <h1 class="title">
-            Login
-        </h1>
-        <p class="subtitle">
-            Ready to test your knowledge?
-        </p>
+            <h1 class="title">
+                Login
+            </h1>
+            <p class="subtitle">
+                Ready to test your knowledge?
+            </p>
             <form method="post">
                 <div class="field">
                     <label class="label">Username</label>

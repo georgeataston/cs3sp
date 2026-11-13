@@ -3,6 +3,11 @@ session_start();
 require '../db.php';
 $secure = filter_var(getenv('SECURE'), FILTER_VALIDATE_BOOLEAN);
 
+if (isset($_SESSION['id'])) {
+    header("Location: /app");
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $username = trim($_POST['username']) ?? '';
@@ -35,7 +40,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 if ($result !== false) {
                     $_SESSION['id'] = $pdo->lastInsertId();
-                    header("Location: /home");
+                    $_SESSION['username'] = $username;
+                    header("Location: /app");
                 } else {
                     $_SESSION['errors']['general'] = "Registration failed. Please try again later.";
                     header("Location: /auth/register.php");
@@ -83,12 +89,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php include('../nav.php') ?>
     <section class="section">
         <div class="container">
-        <h1 class="title">
-            Register
-        </h1>
-        <p class="subtitle">
-            Register to test your knowledge.
-        </p>
+            <h1 class="title">
+                Register
+            </h1>
+            <p class="subtitle">
+                Register to test your knowledge.
+            </p>
             <form method="post">
                 <div class="field">
                     <label class="label">Username</label>
