@@ -8,24 +8,53 @@ if (!isset($_SESSION['id'])) {
     exit;
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    $id = $_GET['id'] ?? null;
-    if ($id == null) {
-        header("Location: /app/profile.php?id=" . $_SESSION['id']);
-        exit;
-    }
+$id = $_GET['id'] ?? null;
+if ($id == null) {
+    header("Location: /app/profile.php?id=" . $_SESSION['id']);
+    exit;
+}
 
-    if ($secure && $id != $_SESSION['id']) {
-        header("Location: /app/profile.php?id=" . $_SESSION['id']);
-        exit;
-    }
-    $pdo = get_db();
-    $statement = $pdo->prepare("SELECT `username`, `email`, `profile_pic_url` FROM `users` WHERE `id` = ?");
-    $statement->execute([$id]);
-    $row = $statement->fetch(PDO::FETCH_ASSOC);
-    if (!$row) {
-        echo('404 not found.');
-        exit;
+if ($secure && $id != $_SESSION['id']) {
+    header("Location: /app/profile.php?id=" . $_SESSION['id']);
+    exit;
+}
+$pdo = get_db();
+$statement = $pdo->prepare("SELECT `username`, `email`, `profile_pic_url` FROM `users` WHERE `id` = ?");
+$statement->execute([$id]);
+$row = $statement->fetch(PDO::FETCH_ASSOC);
+if (!$row) {
+    echo('404 not found.');
+    exit;
+}
+
+$errors = $_SESSION['errors'] ?? [];
+$success = $_SESSION['success'] ?? [];
+$old = $_SESSION['old'] ?? [];
+unset($_SESSION['success'], $_SESSION['errors'], $_SESSION['old']);
+
+$old['pfp'] ??= $row['profile_pic_url'] ?? '';
+$previewUrl = trim($old['pfp']);
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    switch ($_POST['action'] ?? '') {
+        case "preview_ppic":
+            $url = trim($_POST['pfp'] ?? '');
+            $previewUrl = $url;
+            $old['pfp'] = $url; 
+            break;
+        case "update_ppic":
+            $statement = $pdo->prepare("UPDATE users SET profile_pic_url = ? WHERE id = ?");
+            $url = trim($_POST['pfp'] ?? '');
+            $result = $statement->execute([$url, $id]);
+
+            if ($result !== false) {
+                $_SESSION['success']['general_pfp'] = "Profile picture updated!";
+                header("Location: /app/profile.php");
+            } else {
+                $_SESSION['errors']['general_pfp'] = "Update failed. Please try again later.";
+                header("Location: /app/profile.php");
+            }
+            break;
     }
 }
 
@@ -52,6 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             <p>Email: <?= htmlspecialchars($row['email']) ?></p>
             <br>
             <form method="post">
+                <input type="hidden" name="action" value="update_password">
                 <div class="field">
                     <label class="label">Old Password</label>
                     <div class="control">
@@ -94,19 +124,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                 <div class="field">
                     <label class="label">Profile Picture URL</label>
                     <div class="control">
-                        <input class="input" type="text" name="pfp">
+                        <input class="input" type="text" name="pfp" value="<?= htmlspecialchars($old['pfp'] ?? '') ?>">
                         <?php if (isset($errors['pfp'])): ?>
                             <p class="help is-danger"><?= htmlspecialchars($errors['pfp']) ?></p>
                         <?php endif; ?>
                     </div>
                 </div>
 
+                <?php if (!empty($previewUrl)): ?>
+                    <figure class="image is-128x128 mb-4">
+                        <img src="preview.php?url=<?= urlencode($previewUrl) ?>" style="height: 100%; object-fit: cover;">
+                    </figure>
+                <?php endif; ?>
+
                 <div class="control">
-                    <button class="button is-primary">Preview</button>
-                    <button class="button is-primary">Save</button>
+                    <button class="button is-primary" name="action" value="preview_ppic">Preview</button>
+                    <button class="button is-primary" name="action" value="update_ppic">Save</button>
                 </div>
                 <?php if (isset($errors['general_pfp'])): ?>
                     <p class="help is-danger"><?= htmlspecialchars($errors['general_pfp']) ?></p>
+                <?php endif; ?>
+                <?php if (isset($success['general_pfp'])): ?>
+                    <p class="help is-success"><?= htmlspecialchars($success['general_pfp']) ?></p>
                 <?php endif; ?>
             </form>
         </div>
