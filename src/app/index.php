@@ -1,7 +1,6 @@
 <?php
-session_start();
 require '../db.php';
-$secure = filter_var(getenv('SECURE'), FILTER_VALIDATE_BOOLEAN);
+require '../session.php';
 
 if (!isset($_SESSION['id'])) {
     header("Location: /auth/login.php");
@@ -59,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pdo = get_db();
         $date = date('Y-m-d');
         $userId = $_SESSION['id'];
-        $sql = $pdo->prepare("INSERT INTO `scores` (`date`, `user_id`, `q1_answer`, `q2_answer`, `q3_answer`, `q4_answer`, `q5_answer`) VALUES '$date', '$userId', '$q1', '$q2', '$q3', '$q4', '$q5')");
+        $sql = "INSERT INTO `scores` (`date`, `user_id`, `q1_answer`, `q2_answer`, `q3_answer`, `q4_answer`, `q5_answer`) VALUES ('$date', '$userId', '$q1', '$q2', '$q3', '$q4', '$q5')";
         $result = $pdo->exec($sql);
 
         if ($result !== false) {

@@ -1,8 +1,6 @@
 <?php
-
-session_start();
 require '../db.php';
-$secure = filter_var(getenv('SECURE'), FILTER_VALIDATE_BOOLEAN);
+require '../session.php';
 
 if (!isset($_SESSION['id'])) {
     header("Location: /auth/login.php");
@@ -10,6 +8,16 @@ if (!isset($_SESSION['id'])) {
 }
 
 $pdo = get_db();
+
+$statementCheck = $pdo->prepare("SELECT * FROM `scores` WHERE `user_id` = ? AND `date` = CURDATE()");
+$statementCheck->execute([$_SESSION['id']]);
+$row = $statementCheck->fetch(PDO::FETCH_ASSOC);
+
+if (!$row) {
+    header("Location: /app");
+    exit;
+}
+
 $statement = $pdo->prepare("SELECT scores.*, users.username FROM `scores` JOIN `users` ON users.id = scores.user_id WHERE `date` = CURDATE()");
 $statement->execute();
 $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
@@ -56,7 +64,7 @@ $rows = $statement->fetchAll(PDO::FETCH_ASSOC);
                             <td><?= htmlspecialchars($row['q4_answer'] ?? '') ?></td>
                             <td><?= htmlspecialchars($row['q5_answer'] ?? '') ?></td>
                         <?php else: ?>
-                            <td><?= $row['username'] ?></td>
+                            <th><?= $row['username'] ?></th>
                             <td><?= $row['q1_answer'] ?></td>
                             <td><?= $row['q2_answer'] ?></td>
                             <td><?= $row['q3_answer'] ?></td>

@@ -1,5 +1,6 @@
 <?php
-session_start();
+require 'session.php';
+
 if (isset($_SESSION['id'])) {
     header("Location: /app");
     exit;

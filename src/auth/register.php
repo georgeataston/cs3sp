@@ -1,7 +1,6 @@
 <?php
-session_start();
 require '../db.php';
-$secure = filter_var(getenv('SECURE'), FILTER_VALIDATE_BOOLEAN);
+require '../session.php';
 
 if (isset($_SESSION['id'])) {
     header("Location: /app");

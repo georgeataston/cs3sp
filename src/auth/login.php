@@ -1,7 +1,6 @@
 <?php
-session_start();
 require '../db.php';
-$secure = filter_var(getenv('SECURE'), FILTER_VALIDATE_BOOLEAN);
+require '../session.php';
 
 if (isset($_SESSION['id'])) {
     header("Location: /app");
@@ -27,6 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($row && password_verify($password, $row['password'])) {
+        session_regenerate_id(true);
         $_SESSION['id'] = $row['id'];
         $_SESSION['username'] = $row['username'];
         header("Location: /app");

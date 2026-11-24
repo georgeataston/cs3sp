@@ -1,6 +1,6 @@
 <?php
-session_start();
-$secure = filter_var(getenv('SECURE'), FILTER_VALIDATE_BOOLEAN);
+require '../db.php';
+require '../session.php';
 
 if (!isset($_SESSION['id'])) {
     echo("no permission");

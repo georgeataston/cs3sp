@@ -1,7 +1,6 @@
 <?php
-session_start();
 require '../db.php';
-$secure = filter_var(getenv('SECURE'), FILTER_VALIDATE_BOOLEAN);
+require '../session.php';
 
 if (!isset($_SESSION['id'])) {
     header("Location: /auth/login.php");
@@ -10,14 +9,13 @@ if (!isset($_SESSION['id'])) {
 
 $id = $_GET['id'] ?? null;
 if ($id == null) {
-    header("Location: /app/profile.php?id=" . $_SESSION['id']);
-    exit;
+    $id = $_SESSION['id'];
 }
 
 if ($secure && $id != $_SESSION['id']) {
-    header("Location: /app/profile.php?id=" . $_SESSION['id']);
-    exit;
+    $id = $_SESSION['id'];
 }
+
 $pdo = get_db();
 $statement = $pdo->prepare("SELECT `username`, `email`, `profile_pic_url` FROM `users` WHERE `id` = ?");
 $statement->execute([$id]);
@@ -45,13 +43,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         case "update_ppic":
             $statement = $pdo->prepare("UPDATE users SET profile_pic_url = ? WHERE id = ?");
             $url = trim($_POST['pfp'] ?? '');
-            $result = $statement->execute([$url, $id]);
+            $result = $statement->execute([$url, $_SESSION['id']]);
 
             if ($result !== false) {
                 $_SESSION['success']['general_pfp'] = "Profile picture updated!";
                 header("Location: /app/profile.php");
             } else {
                 $_SESSION['errors']['general_pfp'] = "Update failed. Please try again later.";
+                header("Location: /app/profile.php");
+            }
+            break;
+        case "update_password":
+            if ($secure) {
+                if (!hash_equals($_SESSION['csrf'], $_POST['csrf'] ?? '')) {
+                    $_SESSION['errors']['general_change'] = "Invalid CSRF. Please try logging out then back in again.";
+                    header("Location: /app/profile.php");
+                    exit;
+                }
+            }
+
+            $new = trim($_POST['new'] ?? '');
+            $confirm = trim($_POST['confirm'] ?? '');
+
+            if ($new !== $confirm) {
+                $_SESSION['errors']['confirm'] = "Password does not match.";
+                header("Location: /app/profile.php");
+                exit;
+            }
+
+            if (strlen($new) < 8) {
+                $_SESSION['errors']['new'] = "Password must be greater than 7 characters.";
+                header("Location: /app/profile.php");
+                exit;
+            }
+
+            $hash = password_hash($new, PASSWORD_DEFAULT);
+            $statement = $pdo->prepare("UPDATE users SET password = ? WHERE id = ?");
+            $result = $statement->execute([$hash, $_SESSION['id']]);
+
+            if ($result !== false) {
+                $_SESSION['success']['general_change'] = "Password updated!";
+                header("Location: /app/profile.php");
+            } else {
+                $_SESSION['errors']['general_change'] = "Update failed. Please try again later.";
                 header("Location: /app/profile.php");
             }
             break;
@@ -82,15 +116,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <br>
             <form method="post">
                 <input type="hidden" name="action" value="update_password">
-                <div class="field">
-                    <label class="label">Old Password</label>
-                    <div class="control">
-                        <input class="input" type="password" name="old">
-                        <?php if (isset($errors['old'])): ?>
-                            <p class="help is-danger"><?= htmlspecialchars($errors['old']) ?></p>
-                        <?php endif; ?>
-                    </div>
-                </div>
+                <input type="hidden" name="csrf" value="<?=htmlspecialchars($_SESSION['csrf'], ENT_QUOTES) ?>">
 
                 <div class="field">
                     <label class="label">New Password</label>
@@ -117,6 +143,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
                 <?php if (isset($errors['general_change'])): ?>
                     <p class="help is-danger"><?= htmlspecialchars($errors['general_change']) ?></p>
+                <?php endif; ?>
+                <?php if (isset($success['general_change'])): ?>
+                    <p class="help is-success"><?= htmlspecialchars($success['general_change']) ?></p>
                 <?php endif; ?>
             </form>
             <br>
