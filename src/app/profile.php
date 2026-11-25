@@ -162,7 +162,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 <?php if (!empty($previewUrl)): ?>
                     <figure class="image is-128x128 mb-4">
-                        <img src="preview.php?url=<?= urlencode($previewUrl) ?>" style="height: 100%; object-fit: cover;">
+                        <img src="preview.php?url=<?= urlencode($previewUrl) ?>">
                     </figure>
                 <?php endif; ?>
 
